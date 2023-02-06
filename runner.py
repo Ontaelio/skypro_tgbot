@@ -23,18 +23,19 @@ def runner(token=TG_TOKEN):
 
             if words[0] == '/login':
                 if len(words) != 3:
-                    tg_client.send_message(chat_id, 'Please use /login <user> <password>.')
+                    tg_client.send_message(chat_id, 'Please use `/login \\<user\\> \\<password\\>`\\.')
                 else:
-                    s, name = user_login(words[1], words[2])
+                    s, name, base_id = user_login(words[1], words[2])
                     if s:
                         user_object = UserStatus(username=words[1],
                                                  session=s,
-                                                 name=name)
+                                                 name=name,
+                                                 id=base_id)
                         users[user_id] = user_object
                         username = user_object.name if user_object.name else user_object.username
-                        tg_client.send_message(chat_id, f'Welcome, {username}!')
+                        tg_client.send_message(chat_id, f'Welcome, {username}\\!\n' + get_board_list(user_object))
                     else:
-                        tg_client.send_message(chat_id, 'User/password incorrect.')
+                        tg_client.send_message(chat_id, 'User/password incorrect\\.')
 
             else:
                 if user := users.get(user_id):
@@ -43,9 +44,10 @@ def runner(token=TG_TOKEN):
                         reply = command(user, *args)
                         tg_client.send_message(chat_id, str(reply))
                     else:
-                        tg_client.send_message(chat_id, 'Please use commands. /help is helpful.')
+                        tg_client.send_message(chat_id, 'Please use commands\\. /help is helpful\\.')
 
-            prompt = 'Awaiting your command, Master.' if user_id in users else 'Please login.'
+            prompt = 'Awaiting your command, Master\\.' if user_id in users \
+                else 'Please login using `/login \\<user\\> \\<password\\>`\\.'
 
             tg_client.send_message(chat_id, prompt)
 

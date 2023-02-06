@@ -5,17 +5,19 @@ from pydantic import BaseModel, Field
 class PresentItem(BaseModel):
     id: int
     title: str
+    role: Optional[int]
 
 
 class UserStatus(BaseModel):
+    id: int
     username: str
     name: str | None = None
     board: Optional[PresentItem]
-    category: int | None = None
-    goal: int | None = None
-    present_boards: Optional[Dict[int, PresentItem]]
-    present_cats: Optional[Dict[int, PresentItem]]
-    present_goals: Optional[Dict[int, PresentItem]]
+    category: Optional[PresentItem]
+    goal: Optional[PresentItem]
+    present_boards: Optional[Dict[int, PresentItem]] = {}
+    present_cats: Optional[Dict[int, PresentItem]] = {}
+    present_goals: Optional[Dict[int, PresentItem]] = {}
     session: Any
 
 

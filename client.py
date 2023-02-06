@@ -17,5 +17,8 @@ class TgClient:
 
     def send_message(self, chat_id: int, text: str) -> SendMessageResponse:
         url = self.get_url('sendMessage')
-        reply = requests.get(url, params={'chat_id': chat_id, 'text': text})
+        reply = requests.get(url, params={'chat_id': chat_id,
+                                          'text': text,
+                                          'parse_mode': "MarkdownV2"})
+        # print(reply.json())
         return SendMessageResponse(**reply.json())

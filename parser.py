@@ -6,11 +6,17 @@ commands = {
     '/cats': get_categories_list,
     '/goals': get_goals_list,
     '/board': select_board,
+    '/category': select_category,
+    '/cat': select_category,
+    '/goal': select_goal,
 }
 
 
 def get_help(*args):
-    return str(f"Available commands: {', '.join(list(commands.keys()))}.")
+    return str(f"Available commands: {', '.join(list(commands.keys()))}\\.")
+
+
+
 
 
 def parse_command(words: list) -> callable:
