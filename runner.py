@@ -1,6 +1,4 @@
-import requests
-
-from api_utils import user_login, get_board_list, get_categories_list, get_goals_list, get_user_name
+from api_views import user_login, get_board_list
 from classes import UserStatus
 from client import TgClient
 from parser import parse_command
@@ -13,6 +11,8 @@ def runner(token=TG_TOKEN):
     tg_client = TgClient(token)
     while True:
         res = tg_client.get_updates(offset=offset, timeout=20)
+        if not res:
+            continue
         for item in res.result:
             offset = item.update_id + 1
             text = item.message.text
@@ -21,7 +21,7 @@ def runner(token=TG_TOKEN):
             chat_id = item.message.chat.id
             print(user_id, ':', item.message.text)
 
-            if words[0] == '/login':
+            if words[0].lower() == '/login':
                 if len(words) != 3:
                     tg_client.send_message(chat_id, 'Please use `/login \\<user\\> \\<password\\>`\\.')
                 else:
@@ -39,6 +39,8 @@ def runner(token=TG_TOKEN):
 
             else:
                 if user := users.get(user_id):
+                    if words[0].isdecimal():
+                        words = [user.default_command, words[0]]
                     if words[0][0] == '/':
                         command, args = parse_command(words)
                         reply = command(user, *args)
