@@ -1,5 +1,10 @@
 # Telegram bot for Skypro Diploma
 
+
+For some commands like changing names double quotes can be used.
+Note that thus double quotes should NOT be used in comments and other places where they DO NOT form a complete argument.
+(Although you _can_ enclose the entire comment in double quotes.)
+Double quotes are supposed to happen ONLY at the end of a complex command.
 ### Commands
 * /boards
 * /board [\<num>]
@@ -8,6 +13,7 @@
 * /goals
 * /goal [\num]
 * /comments (when a goal is selected)
+* /users (when a board is selected). There's no way to get info on a particular user due to the way backend was done (as requested by the front).
 
 Note: /cat and /goal will return you back to the working category or goal if you used /boards or /cats to check the upper tree, unless the all option was used (see below).
 

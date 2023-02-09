@@ -1,7 +1,8 @@
-from api_views import user_login, get_board_list
+from api_handlers.api_views import user_login, get_board_list
+from api_handlers.utils import markdowned
 from classes import UserStatus
 from client import TgClient
-from parser import parse_command
+from api_handlers.parser import parse_command, split_double_quoted
 
 from settings import TG_TOKEN, users
 
@@ -16,7 +17,7 @@ def runner(token=TG_TOKEN):
         for item in res.result:
             offset = item.update_id + 1
             text = item.message.text
-            words = text.split()
+            words = split_double_quoted(text)
             user_id = item.message.from_.id
             chat_id = item.message.chat.id
             print(user_id, ':', item.message.text)
@@ -33,7 +34,7 @@ def runner(token=TG_TOKEN):
                                                  id=base_id)
                         users[user_id] = user_object
                         username = user_object.name if user_object.name else user_object.username
-                        tg_client.send_message(chat_id, f'Welcome, {username}\\!\n' + get_board_list(user_object))
+                        tg_client.send_message(chat_id, f'Welcome, {markdowned(username)}\\!\n' + get_board_list(user_object))
                     else:
                         tg_client.send_message(chat_id, 'User/password incorrect\\.')
 

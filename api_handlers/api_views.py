@@ -2,7 +2,7 @@ import requests
 
 from classes import UserStatus, PresentItem
 from settings import API_URL
-from utils import markdowned, find_board_local_id, get_category_board, get_board_role, get_user_name, get_goal_details, \
+from api_handlers.utils import markdowned, find_board_local_id, get_category_board, get_board_role, get_user_name, get_goal_details, \
     get_category_details, find_cat_local_id
 
 role_string = {
@@ -64,7 +64,7 @@ def get_board_list(s: UserStatus, *args):
     s.default_command = '/board'
     reply_str = 'Your available boards are:\n' \
                 + '\n'.join(list(f'{bid}: {markdowned(title)}' for (bid, title) in reply_list)) \
-                + '\nSelect a board by it\'s \\# or with `\\/board \\<number\\>` command\\.'
+                + '\nSelect a board by it\'s \\# or with `\\/board \\<number\\>`'
     return reply_str
 
 
@@ -83,7 +83,7 @@ def get_categories_list(s: UserStatus, *args):
     s.default_command = '/category'
     reply_str = 'Your available categories are:\n' \
                 + '\n'.join(list(f'{bid}: {markdowned(title)}' for (bid, title) in reply_list)) \
-                + '\nSelect a category by it\'s \\# or with `/cat \\<number\\>` command\\.'
+                + '\nSelect a category by it\'s \\# or with `/cat \\<number\\>`'
     return reply_str
 
 
@@ -108,14 +108,50 @@ def get_goals_list(s: UserStatus, *args):
         if status in statuses and priority in priorities:
             smd = status_md[status]
             pmd = priority_md[priority]
+            if not any([smd, pmd]):
+                b['title'] = markdowned(b['title'])
             reply_list.append(f"{num}: {smd}{pmd}{b['title']}{pmd}{smd}")
         s.present_goals[num] = PresentItem(id=b['id'], title=b['title'])
     s.default_command = '/goal'
     reply_str = 'Your goals are:\n' \
                 + '\n'.join(reply_list) \
-                + '\nSelect a goal by it\'s \\# or with `/goal \\<number\\>` command\\.'
+                + '\nSelect a goal by it\'s \\# or with `/goal \\<number\\>`'
 
     return reply_str
+
+
+def get_users_list(s: UserStatus, *args):
+    if not s.board:
+        return 'Please select a board first\\.'
+
+    reply = s.session.get(API_URL + f'/goals/board/{s.board.id}')
+    users = reply.json()['participants']
+    owners = []
+    editors = []
+    readers = []
+
+    for user in users:
+        person = {'id': user['id'],
+                  'username': markdowned(user['user'])}
+        if user['user'] == s.username:
+            person['username'] = '*YOU*'
+        if user['role'] == 1:
+            owners.append(person)
+        elif user['role'] == 2:
+            editors.append(person)
+        else:
+            readers.append(person)
+
+    userlist = f'Board {markdowned(s.board.title)} participants are:\n'\
+                + '*Owner*:\n'\
+                + f"{owners[0]['id']}: {owners[0]['username']}\n\n"\
+                + '*Editors*\n'\
+                + '\n'.join(f"{editor['id']}: {editor['username']}" for editor in editors) + '\n\n'\
+                + '*Readers*\n' \
+                + '\n'.join(f"{reader['id']}: {reader['username']}" for reader in readers)
+    print('AND ME IS:', s.id)
+
+    return userlist
 
 
 def get_comments(s: UserStatus, *args):
@@ -132,7 +168,6 @@ def get_comments(s: UserStatus, *args):
                 offset = int(args[1])
 
     reply = s.session.get(API_URL + f'/goals/goal_comment/list?goal={s.goal.id}&limit={limit}&offset={offset}')
-    print(reply.json())
     comments = reply.json()['results']
     count = int(reply.json()['count'])
 
@@ -146,17 +181,16 @@ def get_comments(s: UserStatus, *args):
             message = ['Here are all the comments:']
         else:
             message = [f'There are *{count}* comments, displaying the first {limit}']
-        # comments = comments[:3]
 
     for comment in comments:
         if comment['user']['id'] == s.id:
             user = '*YOU*'
         else:
             if comment['user']['first_name']:
-                user = comment['user']['first_name'] + ' ' + str(comment['user']['last_name'])
+                user = markdowned(comment['user']['first_name'] + ' ' + str(comment['user']['last_name']))
             else:
-                user = comment['user']['username']
-        message.append(user + ': ' + comment['text'])
+                user = markdowned(comment['user']['username'])
+        message.append(user + ': ' + markdowned(comment['text']))
 
     return '\n'.join(message)
 
