@@ -17,11 +17,17 @@ commands = {
     '/comment': create_comment,
     '/me': get_change_my_details,
     '/create': create_item,
+
+    '/description': set_goal_description,
+    '/status': set_goal_status,
+    '/priority': set_goal_priority,
+    '/due': set_goal_due,
 }
 
 keep_case = ['/me',
              '/comment',
              '/create',
+             '/set_goal_description',
              ]
 
 

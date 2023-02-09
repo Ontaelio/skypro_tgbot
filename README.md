@@ -12,8 +12,9 @@ Double quotes are supposed to happen ONLY at the end of a complex command.
 * cat / category [\num]
 * /goals
 * /goal [\num]
-* /comments (when a goal is selected)
+* /comments (when a goal is selected), see below.
 * /users (when a board is selected). There's no way to get info on a particular user due to the way backend was done (as requested by the front).
+* /me - get info on current user
 
 Note: /cat and /goal will return you back to the working category or goal if you used /boards or /cats to check the upper tree, unless the all option was used (see below).
 
@@ -27,6 +28,17 @@ Mix options as you wish separated by space
 
 When a goal is selected:
 * /comments [qty] [skip], where optional [qty] is the number of comments to display and [skip] is how many to skip. Top comments are the latest ones. Defaults are 3 and 0.
+
+DB manipulation:
+* /create [board | cat | goal] \<name> - create stuff
+* /comment \<text> - write a comment (in a goal)
+* /me [name | first_name | last_name | email] \<data> [\<data2>] - edit your info
+
+With goals:
+* /description \<"text"> - create a description for a goal
+* /due \<YYYY-MM-DD> - create a due date
+* /status \<num> | [todo, active, done, archive] - change status. Not that archived goals are gone
+* /priority \<num> | [low, medium, high, critical] - set priority for a goal
 
 ### Text style coding
 

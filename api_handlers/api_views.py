@@ -97,26 +97,30 @@ def get_goals_list(s: UserStatus, *args):
         statuses = args if any(s in args for s in ['todo', 'active', 'done', 'archived']) else ['todo', 'active']
     priorities = args if any(s in args for s in ['low', 'medium', 'high', 'critical'])\
         else ['low', 'medium', 'high', 'critical']
+
     cat = f'?category={s.category.id}' if s.category else ''
     reply = s.session.get(API_URL + '/goals/goal/list' + cat)
     goals = (enumerate(reply.json(), start=1))
     reply_list = []
     s.present_goals = {}
+
     for num, b in goals:
         status = status_string[b['status']].lower().strip('_*~')
         priority = priority_string[b['priority']].lower().strip('_*~')
+        print(b['title'])
         if status in statuses and priority in priorities:
             smd = status_md[status]
             pmd = priority_md[priority]
-            if not any([smd, pmd]):
-                b['title'] = markdowned(b['title'])
+            # if not any([smd, pmd]):
+            b['title'] = markdowned(b['title'])
+
             reply_list.append(f"{num}: {smd}{pmd}{b['title']}{pmd}{smd}")
         s.present_goals[num] = PresentItem(id=b['id'], title=b['title'])
     s.default_command = '/goal'
+
     reply_str = 'Your goals are:\n' \
                 + '\n'.join(reply_list) \
                 + '\nSelect a goal by it\'s \\# or with `/goal \\<number\\>`'
-
     return reply_str
 
 
@@ -197,11 +201,13 @@ def get_comments(s: UserStatus, *args):
 
 # ************** Select Items **************
 
-def select_board(s: UserStatus, board=None):
+def select_board(s: UserStatus, *board):
     try:
-        board = int(board) if board else 0
+        board = int(board[0])
     except ValueError:
         return 'Please provide board number, not name\\.'
+    except IndexError:
+        board = 0
 
     if board:
         if board not in s.present_boards:
@@ -221,11 +227,13 @@ def select_board(s: UserStatus, board=None):
         return 'Board not selected\\.\n' + get_board_list(s)
 
 
-def select_category(s: UserStatus, category=None):
+def select_category(s: UserStatus, *category):
     try:
-        category = int(category) if category else 0
+        category = int(category[0])
     except ValueError:
         return 'Please provide category number, not name\\.'
+    except IndexError:
+        category = 0
 
     if category:
         if category not in s.present_cats:
@@ -251,11 +259,13 @@ def select_category(s: UserStatus, category=None):
         return 'Category not selected\\.\n' + get_categories_list(s)
 
 
-def select_goal(s: UserStatus, goal=None):
+def select_goal(s: UserStatus, *goal):
     try:
-        goal = int(goal) if goal else 0
+        goal = int(goal[0])
     except ValueError:
-        return 'Please provide goal number, not name\\.'
+        return 'Please provide category number, not name\\.'
+    except IndexError:
+        goal = 0
 
     if goal:
         if goal not in s.present_goals:

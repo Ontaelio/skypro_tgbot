@@ -34,7 +34,8 @@ def runner(token=TG_TOKEN):
                                                  id=base_id)
                         users[user_id] = user_object
                         username = user_object.name if user_object.name else user_object.username
-                        tg_client.send_message(chat_id, f'Welcome, {markdowned(username)}\\!\n' + get_board_list(user_object))
+                        tg_client.send_message(chat_id,
+                                               f'Welcome, {markdowned(username)}\\!\n' + get_board_list(user_object))
                     else:
                         tg_client.send_message(chat_id, 'User/password incorrect\\.')
 
@@ -45,7 +46,11 @@ def runner(token=TG_TOKEN):
                     if words[0][0] == '/':
                         command, args = parse_command(words)
                         reply = command(user, *args)
-                        tg_client.send_message(chat_id, str(reply))
+                        try:
+                            tg_client.send_message(chat_id, str(reply))
+                        except:  # this is most certainly a markdown TG bot error, I need to catch it to know the name
+                            tg_client.send_message(chat_id, 'Something really weird happened, most likely with evil '
+                                                            'characters used\\.')
                     else:
                         tg_client.send_message(chat_id, 'Please use commands\\. /help is helpful\\.')
 
