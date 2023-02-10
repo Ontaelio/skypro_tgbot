@@ -1,9 +1,11 @@
 import requests
 
+from api_handlers.decorators import level_goal, level_board, number_or_none
 from classes import UserStatus, PresentItem
 from settings import API_URL
-from api_handlers.utils import markdowned, find_board_local_id, get_category_board, get_board_role, get_user_name, get_goal_details, \
-    get_category_details, find_cat_local_id
+from api_handlers.utils import markdowned, find_board_local_id, get_category_board, get_board_role, get_user_name, \
+    get_goal_details, \
+    get_category_details, find_cat_local_id, filter_boards_by_user
 
 role_string = {
     1: 'You *own* this place\\!',
@@ -54,25 +56,49 @@ def user_login(username, password):
 # ************** Lists **************
 
 def get_board_list(s: UserStatus, *args):
+    """
+Get a list of available boards, optionally filtered by owner
+Usage: /boards [me | <username>]
+'my' returns boards you own, <username> returns available boards owned by username.
+    """
+
     reply = s.session.get(API_URL + '/goals/board/list')
-    boards = (enumerate(reply.json(), start=1))
-    reply_list = []
+
+    if args:
+        username = s.username if args[0].lower() == 'my' else args[0]
+        boards_list = filter_boards_by_user(reply.json(), username)
+        reply_str = f'Boards owned by {username}:\n'
+    else:
+        boards_list = reply.json()
+        reply_str = 'Available boards:\n'
+    if not boards_list:
+        return 'No boards found\\.'
+    boards = (enumerate(boards_list, start=1))
+
     s.present_boards = {}
+    s.default_command = '/board'
+
+    reply_list = []
     for num, b in boards:
         reply_list.append((num, b['title']))
         s.present_boards[num] = PresentItem(id=b['id'], title=b['title'])
-    s.default_command = '/board'
-    reply_str = 'Your available boards are:\n' \
+
+    reply_str = reply_str \
                 + '\n'.join(list(f'{bid}: {markdowned(title)}' for (bid, title) in reply_list)) \
                 + '\nSelect a board by it\'s \\# or with `\\/board \\<number\\>`'
     return reply_str
 
 
 def get_categories_list(s: UserStatus, *args):
-    if 'all' in args:
-        s.board = None
-        s.category = None
-    board = f'?board={s.board.id}' if s.board else ''
+    """
+Get a list of available categories
+Usage: /categories [all]
+* If a board is selected, only it's categories are displayed, else all available.
+* 'all' option shows all available categories.
+* Can be shortened to /cats.
+    """
+
+    board = f'?board={s.board.id}' if (s.board and 'all' not in args) else ''
     reply = s.session.get(API_URL + '/goals/goal_category/list' + board)
     cats = (enumerate(reply.json(), start=1))
     reply_list = []
@@ -88,17 +114,23 @@ def get_categories_list(s: UserStatus, *args):
 
 
 def get_goals_list(s: UserStatus, *args):
-    if 'all' in args:
-        s.board = None
-        s.category = None
+    """
+Get a list of available goals
+Usage: /goals [all] [any] [todo] [active] [done] [low] [normal] [high] [critical]
+* If a category/board is selected, only it's goals are displayed, else all available.
+* Status selection: 'any' for all statuses (todo and active by default) or 'todo', 'active' and/or 'done'.
+* Priority selection: 'low', 'normal', 'high' and/or 'critical'
+* 'all' option shows all available goals.
+    """
+
     if 'any' in args:
         statuses = ['todo', 'active', 'done', 'archived']
     else:
         statuses = args if any(s in args for s in ['todo', 'active', 'done', 'archived']) else ['todo', 'active']
-    priorities = args if any(s in args for s in ['low', 'medium', 'high', 'critical'])\
+    priorities = args if any(s in args for s in ['low', 'medium', 'high', 'critical']) \
         else ['low', 'medium', 'high', 'critical']
 
-    cat = f'?category={s.category.id}' if s.category else ''
+    cat = f'?category={s.category.id}' if (s.category and 'all' not in args) else ''
     reply = s.session.get(API_URL + '/goals/goal/list' + cat)
     goals = (enumerate(reply.json(), start=1))
     reply_list = []
@@ -107,60 +139,65 @@ def get_goals_list(s: UserStatus, *args):
     for num, b in goals:
         status = status_string[b['status']].lower().strip('_*~')
         priority = priority_string[b['priority']].lower().strip('_*~')
-        print(b['title'])
         if status in statuses and priority in priorities:
             smd = status_md[status]
             pmd = priority_md[priority]
-            # if not any([smd, pmd]):
             b['title'] = markdowned(b['title'])
-
             reply_list.append(f"{num}: {smd}{pmd}{b['title']}{pmd}{smd}")
         s.present_goals[num] = PresentItem(id=b['id'], title=b['title'])
+
     s.default_command = '/goal'
 
     reply_str = 'Your goals are:\n' \
                 + '\n'.join(reply_list) \
                 + '\nSelect a goal by it\'s \\# or with `/goal \\<number\\>`'
+
     return reply_str
 
 
+@level_board
 def get_users_list(s: UserStatus, *args):
-    if not s.board:
-        return 'Please select a board first\\.'
+    """
+Get a list of users and their roles in active board
+Usage: /users
+"""
 
     reply = s.session.get(API_URL + f'/goals/board/{s.board.id}')
     users = reply.json()['participants']
-    owners = []
-    editors = []
-    readers = []
+    editors, readers = [], []
+    owner = ''
 
     for user in users:
-        person = {'id': user['id'],
-                  'username': markdowned(user['user'])}
+        person = markdowned(user['user'])
         if user['user'] == s.username:
-            person['username'] = '*YOU*'
+            person = '*YOU*'
         if user['role'] == 1:
-            owners.append(person)
+            owner = person
         elif user['role'] == 2:
             editors.append(person)
         else:
             readers.append(person)
 
-    userlist = f'Board {markdowned(s.board.title)} participants are:\n'\
-                + '*Owner*:\n'\
-                + f"{owners[0]['id']}: {owners[0]['username']}\n\n"\
-                + '*Editors*\n'\
-                + '\n'.join(f"{editor['id']}: {editor['username']}" for editor in editors) + '\n\n'\
-                + '*Readers*\n' \
-                + '\n'.join(f"{reader['id']}: {reader['username']}" for reader in readers)
-    print('AND ME IS:', s.id)
+    editors_str = '\n\n*Editors*\n' + str('\n'.join(f"{editor}" for editor in editors)) \
+        if editors else ''
+    readers_str = '\n\n*Readers*\n' + str('\n'.join(f"{reader}" for reader in readers)) \
+        if readers else ''
+
+    userlist = f'Board {markdowned(s.board.title)} participants are:\n' \
+               + f'*Owner*:\n{owner}' \
+               + editors_str + readers_str
 
     return userlist
 
 
+@level_goal
 def get_comments(s: UserStatus, *args):
-    if not s.goal:
-        return 'Please select a goal'
+    """
+Get the latest comments in a goal, latest first
+Usage: /comments [<qty>] [<skip>]
+* qty - the number of comments in response, default 3
+* skip - the number of comments to skip, default 0
+"""
 
     limit = 3
     offset = 0
@@ -179,12 +216,12 @@ def get_comments(s: UserStatus, *args):
         return 'No comments here yet\\.'
 
     if offset:
-        message = [f'There are *{count}* comments, displaying {limit} starting with {offset+1}']
+        message = [f'There are *{count}* comments, displaying {limit} starting with {offset + 1}']
     else:
         if limit >= count:
             message = ['Here are all the comments:']
         else:
-            message = [f'There are *{count}* comments, displaying the first {limit}']
+            message = [f'There are *{count}* comments, displaying the latest {limit}']
 
     for comment in comments:
         if comment['user']['id'] == s.id:
@@ -201,13 +238,12 @@ def get_comments(s: UserStatus, *args):
 
 # ************** Select Items **************
 
-def select_board(s: UserStatus, *board):
-    try:
-        board = int(board[0])
-    except ValueError:
-        return 'Please provide board number, not name\\.'
-    except IndexError:
-        board = 0
+@number_or_none
+def select_board(s: UserStatus, board):
+    """
+Select a board and/or get selected board's info and contents
+Usage: /board [num]
+    """
 
     if board:
         if board not in s.present_boards:
@@ -227,13 +263,13 @@ def select_board(s: UserStatus, *board):
         return 'Board not selected\\.\n' + get_board_list(s)
 
 
-def select_category(s: UserStatus, *category):
-    try:
-        category = int(category[0])
-    except ValueError:
-        return 'Please provide category number, not name\\.'
-    except IndexError:
-        category = 0
+@number_or_none
+def select_category(s: UserStatus, category):
+    """
+Select a category and/or get selected category info and contents
+Usage: /category [num]
+* Can be shortened to /cat
+    """
 
     if category:
         if category not in s.present_cats:
@@ -244,7 +280,7 @@ def select_category(s: UserStatus, *category):
         message = ''
         if not s.board:
             b = get_category_board(s)
-            get_board_list(s, None)
+            get_board_list(s)
             board_id = find_board_local_id(s, b)
             select_board(s, board_id)
             message = f'Switched to board *{markdowned(s.board.title)}*\\.\n'
@@ -259,13 +295,12 @@ def select_category(s: UserStatus, *category):
         return 'Category not selected\\.\n' + get_categories_list(s)
 
 
-def select_goal(s: UserStatus, *goal):
-    try:
-        goal = int(goal[0])
-    except ValueError:
-        return 'Please provide category number, not name\\.'
-    except IndexError:
-        goal = 0
+@number_or_none
+def select_goal(s: UserStatus, goal):
+    """
+Select a goal and/or get selected goal info
+Usage: /goal [num]
+    """
 
     if goal:
         if goal not in s.present_goals:
@@ -276,7 +311,7 @@ def select_goal(s: UserStatus, *goal):
         message = ''
         if not s.category:
             s.board = None
-            get_categories_list(s, None)
+            get_categories_list(s)
             cat_id = find_cat_local_id(s, s.goal.category)
             select_category(s, cat_id)
             message = f'Switched to board *{markdowned(s.board.title)}*\\.\n' \

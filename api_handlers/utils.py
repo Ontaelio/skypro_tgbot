@@ -21,11 +21,19 @@ def markdowned(text: str) -> str:
 def get_board_role(s: UserStatus, num: int):
     reply = s.session.get(API_URL + f'/goals/board/{num}')
     contents = reply.json()
-    role = 3
     for p in contents['participants']:
         if p['user'] == s.username:
-            role = p['role']
-    return role
+            return p['role']
+    return None
+
+
+def filter_boards_by_user(boards: list, username: str) -> list:
+    reply = []
+    for board in boards:
+        for p in board['participants']:
+            if all([p['user'] == username, p['role'] == 1]):
+                reply.append(board)
+    return reply
 
 
 def get_category_board(s: UserStatus):

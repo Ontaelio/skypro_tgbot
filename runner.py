@@ -1,8 +1,11 @@
+import logging
+
 from api_handlers.api_views import user_login, get_board_list
 from api_handlers.utils import markdowned
 from classes import UserStatus
 from client import TgClient
 from api_handlers.parser import parse_command, split_double_quoted
+from exceptions import CommandUnavailable
 
 from settings import TG_TOKEN, users
 
@@ -10,6 +13,8 @@ from settings import TG_TOKEN, users
 def runner(token=TG_TOKEN):
     offset = 0
     tg_client = TgClient(token)
+    FORMAT = '%(asctime)s %(message)s'
+    logging.basicConfig(format=FORMAT)
     while True:
         res = tg_client.get_updates(offset=offset, timeout=20)
         if not res:
@@ -23,19 +28,17 @@ def runner(token=TG_TOKEN):
             print(user_id, ':', item.message.text)
 
             if words[0].lower() == '/login':
-                if len(words) != 3:
-                    tg_client.send_message(chat_id, 'Please use `/login \\<user\\> \\<password\\>`\\.')
-                else:
+                if len(words) == 3:
                     s, name, base_id = user_login(words[1], words[2])
                     if s:
                         user_object = UserStatus(username=words[1],
                                                  session=s,
                                                  name=name,
                                                  id=base_id)
+                        if not user_object.name: user_object.name = user_object.username
                         users[user_id] = user_object
-                        username = user_object.name if user_object.name else user_object.username
                         tg_client.send_message(chat_id,
-                                               f'Welcome, {markdowned(username)}\\!\n' + get_board_list(user_object))
+                                               f'Welcome, {markdowned(user_object.name)}\\!\n' + get_board_list(user_object))
                     else:
                         tg_client.send_message(chat_id, 'User/password incorrect\\.')
 
@@ -45,7 +48,10 @@ def runner(token=TG_TOKEN):
                         words = [user.default_command, words[0]]
                     if words[0][0] == '/':
                         command, args = parse_command(words)
-                        reply = command(user, *args)
+                        try:
+                            reply = command(user, *args)
+                        except CommandUnavailable as e:
+                            reply = markdowned(str(e))
                         try:
                             tg_client.send_message(chat_id, str(reply))
                         except:  # this is most certainly a markdown TG bot error, I need to catch it to know the name

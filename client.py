@@ -1,6 +1,7 @@
 import logging
 
 import requests
+from requests.exceptions import ConnectionError
 
 from classes import GetUpdatesResponse, SendMessageResponse
 
