@@ -16,7 +16,7 @@ def runner(token=TG_TOKEN):
     FORMAT = '%(asctime)s %(message)s'
     logging.basicConfig(format=FORMAT)
     while True:
-        res = tg_client.get_updates(offset=offset, timeout=20)
+        res = tg_client.get_updates(offset=offset, timeout=60)
         if not res:
             continue
         for item in res.result:
@@ -25,16 +25,19 @@ def runner(token=TG_TOKEN):
             words = split_double_quoted(text)
             user_id = item.message.from_.id
             chat_id = item.message.chat.id
-            print(user_id, ':', item.message.text)
+            first_name = item.message.from_.first_name
+            logging.warning(f'User {user_id} from chat {chat_id}: {item.message}')
 
             if words[0].lower() == '/login':
                 if len(words) == 3:
                     s, name, base_id = user_login(words[1], words[2])
                     if s:
+                        name = first_name if not name else name
                         user_object = UserStatus(username=words[1],
                                                  session=s,
                                                  name=name,
-                                                 id=base_id)
+                                                 id=base_id,
+                                                 tg_user=user_id)
                         if not user_object.name: user_object.name = user_object.username
                         users[user_id] = user_object
                         tg_client.send_message(chat_id,

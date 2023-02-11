@@ -1,4 +1,5 @@
 import logging
+from time import sleep
 
 import requests
 from requests.exceptions import ConnectionError
@@ -19,13 +20,15 @@ class TgClient:
             reply = requests.get(url, params={'timeout': timeout, 'offset': offset})
         except ConnectionError:
             logging.error('Failed to get a response from TG')
+            sleep(5)
             return None
         else:
+            print(reply.json())
             return GetUpdatesResponse(**reply.json())
 
     def send_message(self, chat_id: int, text: str) -> SendMessageResponse | None:
         url = self.get_url('sendMessage')
-        print('Text:', text)
+        # print('Text:', text)
         try:
             reply = requests.get(url, params={'chat_id': chat_id,
                                               'text': text,
@@ -34,5 +37,5 @@ class TgClient:
             logging.error('Failed to get a response from TG')
             return None
         else:
-            print('from SendMessageResponse:', reply.json())
+            # print('from SendMessageResponse:', reply.json())
             return SendMessageResponse(**reply.json())

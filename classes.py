@@ -25,6 +25,8 @@ class UserStatus(BaseModel):
     id: int
     username: str
     name: str | None = None
+    code: str | None = None
+    tg_user: int
     board: Optional[PresentItem]
     category: Optional[PresentItem]
     goal: Optional[GoalItem]
@@ -39,6 +41,8 @@ class UserStatus(BaseModel):
 class MessageFrom(BaseModel):
     id: int
     username: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
 
 
 class Chat(BaseModel):

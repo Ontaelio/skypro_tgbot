@@ -26,6 +26,9 @@ commands = {
     '/me': get_change_my_details,
     '/add': add_user,
     '/remove': remove_user,
+
+    '/connect': connect_and_create_code,
+    '/verify': verify_user,
 }
 
 shortcuts = {

@@ -1,3 +1,6 @@
+import random
+import string
+
 from api_handlers.api_views import get_comments, status_string, priority_string
 from api_handlers.decorators import rights_editor, level_goal, level_board, rights_owner, args_required
 from api_handlers.utils import markdowned
@@ -381,3 +384,34 @@ Usage: /remove <username>
         return f'Something went wrong, sorry\\. Code: {reply.status_code}\\.'
 
     return f'User {bad_guy_name} participates in board {markdowned(s.board.title)} no longer\\.'
+
+
+def connect_and_create_code(s: UserStatus, *args):
+    """
+Create a verification code to connect automatically
+Usage: /connect
+Open web version and enter the code generated, then use /verify to verify this account.
+    """
+    letters = string.ascii_lowercase + string.digits
+    s.code = letters
+
+    reply = s.session.post(API_URL + f'/bot/connect', {"tg_user": s.tg_user, "verification_code": s.code})
+
+    if reply.status_code not in [200, 201]:
+        return f'Not able to connect, error {reply.status_code}\\.'
+
+    return markdowned(f"Enter this code in the web app (\"Verify bot\"):"
+                      f" {''.join(random.choice(letters) for _ in range(8))}\n"
+                      f"Then /verify here.")
+
+
+def verify_user(s: UserStatus, *args):
+    """
+Verify account
+Usage: /verify
+Once you entered the code generated with /connect in the web app run this to bind accounts.
+    """
+    if not s.code:
+        return 'Run /connect first\\.'
+
+    return 'Not implemented'

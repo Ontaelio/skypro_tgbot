@@ -38,6 +38,8 @@ DB manipulation:
 * /comment \<text> - write a comment (in a goal)
 * /me [name | first_name | last_name | email] \<data> [\<data2>] - edit your info
 * /add \<username> [\<read> | <\write>] - add a user to your board
+* /delete (board | category | goal) <"name">
+* /remove <username>
 
 With goals:
 * /description \<"text"> - create a description for a goal
@@ -58,6 +60,3 @@ Priorities:
 * critical tasks are underlined (can't show it here as normal MD doesn't support this)
 
 These styles are combined in the output, thus an **_active high task_** will look like this.
-
-# TODO:
-make unavailable commands NOT callable where they should not.
