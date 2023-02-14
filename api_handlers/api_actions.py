@@ -278,7 +278,7 @@ A goal must be selected.
         return f'Something went wrong, sorry\\. Code {reply.status_code}\\.'
     s.goal.due_date = value
 
-    return f'Due date updated to {s.goal.due_date}\\.'
+    return f'Due date updated to {markdowned(s.goal.due_date)}\\.'
 
 
 @level_board
