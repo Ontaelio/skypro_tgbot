@@ -69,7 +69,7 @@ def check_binding(s: UserStatus):
 def get_board_list(s: UserStatus, *args):
     """
 Get a list of available boards, optionally filtered by owner
-Usage: /boards [me | <username>]
+Usage: /boards [my | <username>]
 'my' returns boards you own, <username> returns available boards owned by username.
     """
 

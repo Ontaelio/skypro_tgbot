@@ -6,12 +6,19 @@ Note that thus double quotes should NOT be used in comments and other places whe
 (Although you _can_ enclose the entire comment in double quotes.)
 Double quotes are supposed to happen ONLY at the end of a complex command.
 ### Commands
+* /login <username> <password>
+* /logout - if logged in with username and pass
+* /bind - bind this TG account to the app (no login needed)
+* /unbind - logout and unbind
+
+
 * /help - display a list of available commands
 * /help \<command> - get help on a particular command
-* /help verbose - get all commands and their descriptions
+* /help verbose - get (almost) all commands and their descriptions
+
 
 Lists and items:
-* /boards [me | \<username]
+* /boards [my | \<username>]
 * /board [\<num>]
 * cats / categories
 * cat / category [\<num>]
@@ -38,8 +45,9 @@ DB manipulation:
 * /comment \<text> - write a comment (in a goal)
 * /me [name | first_name | last_name | email] \<data> [\<data2>] - edit your info
 * /add \<username> [\<read> | <\write>] - add a user to your board
-* /delete (board | category | goal) <"name">
-* /remove <username>
+* /remove \<username>
+* /delete (board | category | goal | comment) (<"name"> | \<num>)
+
 
 With goals:
 * /description \<"text"> - create a description for a goal

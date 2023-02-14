@@ -17,6 +17,7 @@ def runner(token=TG_TOKEN):
     tg_client = TgClient(token)
     FORMAT = '%(asctime)s %(message)s'
     logging.basicConfig(format=FORMAT)
+
     while True:
         res = tg_client.get_updates(offset=offset, timeout=60)
         if not res:
@@ -40,16 +41,13 @@ def runner(token=TG_TOKEN):
                     users[user_id].name = name if name else first_name
                     users[user_id].tg_user = user_id
                     tg_client.send_message(chat_id,
-                                           f'Welcome, {markdowned(users[user_id].name)}\\!\n')
-                                                        # + get_board_list(users[user_id]))
+                                           f'Welcome, {markdowned(users[user_id].name)}\\!\n'
+                                           + get_board_list(users[user_id]))
                 else:
                     del users[user_id]
 
             if words[0].lower() == '/bind':
                 tg_client.send_message(chat_id, create_code(user_id))
-
-            # elif words[0].lower() == '/logout':
-            #     tg_client.send_message(chat_id, logout(user_id))
 
             elif words[0].lower() == '/login':
                 if len(words) == 3:
@@ -64,7 +62,8 @@ def runner(token=TG_TOKEN):
                         if not user_object.name: user_object.name = user_object.username
                         users[user_id] = user_object
                         tg_client.send_message(chat_id,
-                                               f'Welcome, {markdowned(user_object.name)}\\!\n' + get_board_list(user_object))
+                                               f'Welcome, {markdowned(user_object.name)}\\!\n' + get_board_list(
+                                                   user_object))
                     else:
                         tg_client.send_message(chat_id, 'User/password incorrect\\.')
 
@@ -72,7 +71,7 @@ def runner(token=TG_TOKEN):
                 if user := users.get(user_id):
                     if words[0].isdecimal():
                         words = [user.default_command, words[0]]
-                    if words[0].startswith('/'): #[0] == '/':
+                    if words[0].startswith('/'):  # [0] == '/':
                         command, args = parse_command(words)
                         try:
                             reply = command(user, *args)
@@ -88,7 +87,7 @@ def runner(token=TG_TOKEN):
                         tg_client.send_message(chat_id, 'Please use commands\\. /help is helpful\\.')
 
             prompt = 'Awaiting your command, Master\\.' if user_id in users \
-                else 'Please login using `/login \\<user\\> \\<password\\>`\\.'
+                else 'Please `/login \\<user\\> \\<password\\>` or `/bind` your account\\.'
 
             tg_client.send_message(chat_id, prompt)
 
