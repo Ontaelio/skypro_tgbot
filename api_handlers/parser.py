@@ -31,7 +31,6 @@ commands = {
     '/unbind': unbind,
 
     '/logout': logout,
-    # '/verify': verify_user,
 }
 
 shortcuts = {

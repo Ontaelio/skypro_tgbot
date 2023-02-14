@@ -31,6 +31,7 @@ def runner(token=TG_TOKEN):
             first_name = item.message.from_.first_name
             logging.warning(f'User {user_id} from chat {chat_id}: {item.message}')
 
+            # check if user is bound
             if user_id not in users:
                 users[user_id] = UserStatus(session=requests.Session())
                 users[user_id].session.headers.update({'tg-user': str(user_id)})
@@ -46,6 +47,7 @@ def runner(token=TG_TOKEN):
                 else:
                     del users[user_id]
 
+            # commands that are available without login
             if words[0].lower() == '/bind':
                 tg_client.send_message(chat_id, create_code(user_id))
 
@@ -67,6 +69,7 @@ def runner(token=TG_TOKEN):
                     else:
                         tg_client.send_message(chat_id, 'User/password incorrect\\.')
 
+            # and now for actual commands
             else:
                 if user := users.get(user_id):
                     if words[0].isdecimal():

@@ -23,7 +23,7 @@ class TgClient:
             sleep(5)
             return None
         else:
-            print(reply.json())
+            # print(reply.json())
             return GetUpdatesResponse(**reply.json())
 
     def send_message(self, chat_id: int, text: str) -> SendMessageResponse | None:
@@ -38,5 +38,5 @@ class TgClient:
             logging.error('Failed to get a response from TG')
             return None
         else:
-            print('from SendMessageResponse:', reply.json())
+            # print('from SendMessageResponse:', reply.json())
             return SendMessageResponse(**reply.json())

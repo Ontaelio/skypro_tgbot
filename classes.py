@@ -22,7 +22,6 @@ class UserStatus(BaseModel):
     id: Optional[int]
     username: Optional[str]
     name: str | None = None
-    # code: str | None = None
     tg_user: Optional[int]
     board: Optional[PresentItem]
     category: Optional[PresentItem]

@@ -1,8 +1,3 @@
-import random
-import string
-
-import requests
-
 from api_handlers.api_views import get_comments, status_string, priority_string
 from api_handlers.decorators import rights_editor, level_goal, level_board, rights_owner, args_required, level_category
 from api_handlers.utils import markdowned
@@ -310,8 +305,6 @@ Defaults to read.
 
 @rights_owner
 def delete_board(s: UserStatus, title):
-    # if not s.board:
-    #     return 'You must select a board with `/board <num>` to delete it\\.'
     reply = s.session.delete(API_URL + f'/goals/board/{s.board.id}')
     if reply.status_code == 204:
         s.board = None
@@ -335,8 +328,6 @@ def delete_category(s: UserStatus, title):
 @level_goal
 @rights_owner
 def delete_goal(s: UserStatus):
-    # if not s.goal:
-    #     return 'You must select a goal with `/goal <num>` to delete it\\.'
     return set_goal_status(s, 'archived')
 
 
@@ -367,6 +358,7 @@ Usage: /delete (board | category | goal | comment) <"name">
 * WARNING: Once deleted, boards and categories stay deleted! Hence the <name>.
 * Goals can be restored by setting their status to 1/2/3 before another goal is selected. Then they are gone.
 * <name> is needed only for boards and categories, as they are deleted immediately.
+* Comments are deleted by their number after /comments, no "name" required
     """
 
     if args[0] not in ['board', 'category', 'goal', 'comment']:

@@ -42,5 +42,3 @@ class NonIntArgs(CommandUnavailable):
     def __init__(self):
         message = 'Please provide a number, not a name.'
         super().__init__(message)
-
-# 365951089
