@@ -1,11 +1,13 @@
 import random
 import string
 
+import requests
+
 from api_handlers.api_views import get_comments, status_string, priority_string
-from api_handlers.decorators import rights_editor, level_goal, level_board, rights_owner, args_required
+from api_handlers.decorators import rights_editor, level_goal, level_board, rights_owner, args_required, level_category
 from api_handlers.utils import markdowned
 from classes import UserStatus
-from settings import API_URL
+from settings import API_URL, users
 
 status_int = {
     'todo': 1,
@@ -306,27 +308,76 @@ Defaults to read.
     return markdowned(f'User {user} added to board {s.board.title}.')
 
 
-@level_board
 @rights_owner
+def delete_board(s: UserStatus, title):
+    # if not s.board:
+    #     return 'You must select a board with `/board <num>` to delete it\\.'
+    reply = s.session.delete(API_URL + f'/goals/board/{s.board.id}')
+    if reply.status_code == 204:
+        s.board = None
+        return markdowned(f'Board "{title}" deleted')
+    else:
+        return markdowned(f'Was not able to delete "{title}". Error code: {reply.status_code}')
+
+
+@level_category
+@rights_owner
+def delete_category(s: UserStatus, title):
+    reply = s.session.delete(API_URL + f'/goals/goal_category/{s.category.id}')
+    if reply.status_code == 204:
+        s.category = None
+        s.goal = None
+        return markdowned(f'Category "{title}" deleted')
+    else:
+        return markdowned(f'Was not able to delete "{title}". Error code: {reply.status_code}')
+
+
+@level_goal
+@rights_owner
+def delete_goal(s: UserStatus):
+    # if not s.goal:
+    #     return 'You must select a goal with `/goal <num>` to delete it\\.'
+    return set_goal_status(s, 'archived')
+
+
+def delete_comment(s: UserStatus, args):
+    # using try-except approach for fun here
+    try:
+        reply = s.session.delete(API_URL + f'/goals/goal_comment/{s.present_comments[int(args[1])]}')
+    except IndexError:
+        return 'Please provide a comment number\\.'
+    except ValueError:
+        return 'Please use comment number, not name\\.'
+    except KeyError:
+        return 'Please use `/comments` to get a comments list with valid comment numbers\\.'
+    if reply.status_code == 204:
+        return 'Comment deleted\\.'
+    else:
+        return f'Something went wrong, code {reply.status_code}'
+
+
+@level_board
 @args_required
 def delete_item(s: UserStatus, *args):
     """
 Delete board, category or goal
-Usage: /delete (board | category | goal) <"name">
-* Must be an owner
+Usage: /delete (board | category | goal | comment) <"name">
+* Must be an owner (author for comments)
 * Must be in the board/category/goal about to be deleted
 * WARNING: Once deleted, boards and categories stay deleted! Hence the <name>.
 * Goals can be restored by setting their status to 1/2/3 before another goal is selected. Then they are gone.
 * <name> is needed only for boards and categories, as they are deleted immediately.
     """
 
-    if args[0] not in ['board', 'category', 'goal']:
+    if args[0] not in ['board', 'category', 'goal', 'comment']:
         return f'Can not delete {markdowned(args[0])}\\. Note that case matters in `/delete`\\.'
 
-    if args[0] == 'goal':
-        if not s.goal:
-            return 'You must select a goal with `/goal <num>` to delete it\\.'
-        return set_goal_status(s, 'archived')
+    reply = ''
+    match args[0]:
+        case 'comment':
+            return delete_comment(s, args)
+        case 'goal':
+            return delete_goal(s)
 
     title = s.board.title if args[0] == 'board' else s.category.title
 
@@ -336,26 +387,11 @@ Usage: /delete (board | category | goal) <"name">
     except IndexError:
         return markdowned(f'You must provide a correct {args[0]} name to delete it. Don\'t forget double quotes!')
 
-    if args[0] == 'category':
-        if not s.category:
-            return 'You must select a category with `/category <num>` to delete it\\.'
-        reply = s.session.delete(API_URL + f'/goals/goal_category/{s.category.id}')
-        if reply.status_code == 204:
-            s.category = None
-            s.goal = None
-            return markdowned(f'Category "{title}" deleted')
-        else:
-            return markdowned(f'Was not able to delete "{title}". Error code: {reply.status_code}')
-
-    if args[0] == 'board':
-        if not s.board:
-            return 'You must select a board with `/board <num>` to delete it\\.'
-        reply = s.session.delete(API_URL + f'/goals/board/{s.board.id}')
-        if reply.status_code == 204:
-            s.board = None
-            return markdowned(f'Board "{title}" deleted')
-        else:
-            return markdowned(f'Was not able to delete "{title}". Error code: {reply.status_code}')
+    match args[0]:
+        case 'board':
+            return delete_board(s, title)
+        case 'category':
+            return delete_category(s, title)
 
     return 'This is message should never be seen (delete)'
 
@@ -386,32 +422,48 @@ Usage: /remove <username>
     return f'User {bad_guy_name} participates in board {markdowned(s.board.title)} no longer\\.'
 
 
-def connect_and_create_code(s: UserStatus, *args):
+def logout(s: UserStatus, *args):
     """
-Create a verification code to connect automatically
-Usage: /connect
-Open web version and enter the code generated, then use /verify to verify this account.
+    Log out a user logged in with /login command
+    Usage: /logout
+    * If this Telegram account is bound this command won't have any effect, use /unbind instead.
     """
-    letters = string.ascii_lowercase + string.digits
-    s.code = letters
-
-    reply = s.session.post(API_URL + f'/bot/connect', {"tg_user": s.tg_user, "verification_code": s.code})
-
-    if reply.status_code not in [200, 201]:
-        return f'Not able to connect, error {reply.status_code}\\.'
-
-    return markdowned(f"Enter this code in the web app (\"Verify bot\"):"
-                      f" {''.join(random.choice(letters) for _ in range(8))}\n"
-                      f"Then /verify here.")
+    del users[s.tg_user]
+    return 'Logged out\\.'
 
 
-def verify_user(s: UserStatus, *args):
+def unbind(s: UserStatus, *args):
     """
-Verify account
-Usage: /verify
-Once you entered the code generated with /connect in the web app run this to bind accounts.
+Log out and unbind this Telegram account.
+Usage: /unbind
+* This command is mostly for testing purposes, use only if you know what you are doing.
     """
-    if not s.code:
-        return 'Run /connect first\\.'
 
-    return 'Not implemented'
+    reply = s.session.delete(API_URL + f'/bot/delete/{s.tg_user}')
+    if reply.status_code == 204:
+        del users[s.tg_user]
+        return 'This Telegram account is no longer bound to the app\\.'
+    if reply.status_code == 404:
+        return 'This account is not bound\\.'
+    return f'Something went wrong\\. Code {reply.status_code}\\.'
+
+
+def connect_and_create_code_placeholder():
+    """
+Create a verification code to bind this Telegram account with the app user
+Usage: /bind
+Open the web app and enter the code generated.
+    """
+    return markdowned('This should never be seen, this is a placeholder for help (/bind)')
+
+
+# def verify_user(s: UserStatus, *args):
+#     """
+# Verify account
+# Usage: /verify
+# Once you entered the code generated with /connect in the web app run this to bind accounts.
+#     """
+#     if not s.code:
+#         return 'Run /connect first\\.'
+#
+#     return 'Not implemented'

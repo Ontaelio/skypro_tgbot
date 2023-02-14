@@ -28,7 +28,8 @@ class TgClient:
 
     def send_message(self, chat_id: int, text: str) -> SendMessageResponse | None:
         url = self.get_url('sendMessage')
-        # print('Text:', text)
+        if len(text) > 4096:
+            text = text.split('/bind')[0]
         try:
             reply = requests.get(url, params={'chat_id': chat_id,
                                               'text': text,
@@ -37,5 +38,5 @@ class TgClient:
             logging.error('Failed to get a response from TG')
             return None
         else:
-            # print('from SendMessageResponse:', reply.json())
+            print('from SendMessageResponse:', reply.json())
             return SendMessageResponse(**reply.json())

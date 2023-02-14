@@ -10,9 +10,6 @@ class PresentItem(BaseModel):
 
 class GoalItem(BaseModel):
     id: int
-    # user: Any
-    # created: str
-    # updated: str
     title: str
     description: Optional[str]
     status: int
@@ -22,17 +19,18 @@ class GoalItem(BaseModel):
 
 
 class UserStatus(BaseModel):
-    id: int
-    username: str
+    id: Optional[int]
+    username: Optional[str]
     name: str | None = None
-    code: str | None = None
-    tg_user: int
+    # code: str | None = None
+    tg_user: Optional[int]
     board: Optional[PresentItem]
     category: Optional[PresentItem]
     goal: Optional[GoalItem]
     present_boards: Optional[Dict[int, PresentItem]] = {}
     present_cats: Optional[Dict[int, PresentItem]] = {}
     present_goals: Optional[Dict[int, PresentItem]] = {}
+    present_comments: Optional[Dict[int, int]] = {}
     default_command: str = '/board'
     session: Any
 

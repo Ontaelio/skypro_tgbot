@@ -53,6 +53,17 @@ def user_login(username, password):
     return None, None, None
 
 
+def check_binding(s: UserStatus):
+    reply = s.session.get(API_URL + '/core/profile')
+    if reply.status_code == 200:
+        name = reply.json().get('first_name', None)
+        user_id = reply.json().get('id')
+        username = reply.json().get('username')
+        return user_id, username, name
+    return None, None, None
+
+
+
 # ************** Lists **************
 
 def get_board_list(s: UserStatus, *args):
@@ -223,7 +234,10 @@ Usage: /comments [<qty>] [<skip>]
         else:
             message = [f'There are *{count}* comments, displaying the latest {limit}']
 
+    count = 0
     for comment in comments:
+        count += 1
+        s.present_comments[count] = comment['id']
         if comment['user']['id'] == s.id:
             user = '*YOU*'
         else:
@@ -231,7 +245,7 @@ Usage: /comments [<qty>] [<skip>]
                 user = markdowned(comment['user']['first_name'] + ' ' + str(comment['user']['last_name']))
             else:
                 user = markdowned(comment['user']['username'])
-        message.append(user + ': ' + markdowned(comment['text']))
+        message.append(str(count) + ' ' + user + ': ' + markdowned(comment['text']))
 
     return '\n'.join(message)
 
@@ -317,6 +331,7 @@ Usage: /goal [num]
             message = f'Switched to board *{markdowned(s.board.title)}*\\.\n' \
                       + f'Selected category *{markdowned(s.category.title)}*\\.\n'
 
+        s.present_comments = {}
         return message + f'Working with goal:\n*{markdowned(s.goal.title)}*\n' \
                + (f'_{markdowned(s.goal.description)}_\n' if s.goal.description else '') \
                + (f'Due on {markdowned(s.goal.due_date)}\n' if s.goal.due_date else 'Due date not set\n') \

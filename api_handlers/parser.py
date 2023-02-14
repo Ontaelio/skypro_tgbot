@@ -27,8 +27,11 @@ commands = {
     '/add': add_user,
     '/remove': remove_user,
 
-    '/connect': connect_and_create_code,
-    '/verify': verify_user,
+    '/bind': connect_and_create_code_placeholder,
+    '/unbind': unbind,
+
+    '/logout': logout,
+    # '/verify': verify_user,
 }
 
 shortcuts = {

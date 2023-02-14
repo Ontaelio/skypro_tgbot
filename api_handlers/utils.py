@@ -1,5 +1,10 @@
+import random
+import string
+
+import requests
+
 from classes import UserStatus, GoalItem
-from settings import API_URL
+from settings import API_URL, users
 
 prohibited_letters = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
 
@@ -16,6 +21,20 @@ def markdowned(text: str) -> str:
         else:
             a.append(letter)
     return ''.join(a)
+
+
+def create_code(tg_user):
+    letters = string.ascii_lowercase + string.digits
+    code = str(''.join(random.choice(letters) for _ in range(8)))
+
+    reply = requests.post(API_URL + f'/bot/connect', data={"tg_user": tg_user, "verification_code": code})
+
+    if reply.status_code not in [200, 201]:
+        return f'Not able to bind, error {reply.status_code}\\.'
+
+    return markdowned(f"Enter this code in the web app (\"Verify bot\"):"
+                      f" {code}\n"
+                      f"Then /verify here.")
 
 
 def get_board_role(s: UserStatus, num: int):
